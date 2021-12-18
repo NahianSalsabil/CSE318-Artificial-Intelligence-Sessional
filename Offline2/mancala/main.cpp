@@ -4,9 +4,9 @@ using namespace std;
 #define W1 10
 #define W2 5
 #define W3 10
-#define W4 10
-#define heuristic 3
-
+#define W4 1
+int heuristic=4;
+int depth=12;
 
 class Game_Control{
     int storage1, storage2, turn, capture;
@@ -125,7 +125,6 @@ int heuristic4(Game_Control *dummygameControl){
 
     int additional_move_earned = checkAdditionalMove(dummygameControl);
 
-
     return W1*storagediff + W2*stonediff + W3*additional_move_earned + W4*dummygameControl->getCapture();
 }
 
@@ -141,6 +140,7 @@ void makeCopy(Game_Control *backupgameControl, Game_Control *dummgameControl){
     backupgameControl->setStorage1(dummgameControl->getStorage1());
     backupgameControl->setStorage2(dummgameControl->getStorage2());
     backupgameControl->setTurn(dummgameControl->getTurn());
+    backupgameControl->setCapture(dummgameControl->getCapture());
     for(int i = 0; i < N; i++){
         backupgameControl->getGameBoard()[0][i] = dummgameControl->getGameBoard()[0][i];
         backupgameControl->getGameBoard()[1][i] = dummgameControl->getGameBoard()[1][i];
@@ -187,6 +187,7 @@ bool Game_Ending_Condition(Game_Control* gameControl){
 
 int make_Board(Game_Control *dummygameControl, int bin, int row){
     int free_turn = 0;
+
     if(row == 0){   // player 2 : Computer
         int storage_flag = 0;
         int index = bin-1;
@@ -238,10 +239,12 @@ int make_Board(Game_Control *dummygameControl, int bin, int row){
                 // stone capture
                 if(i == no_of_stones && dummygameControl->getGameBoard()[row][index] == 1 && dummygameControl->getGameBoard()[1-row][index] != 0) {
                     dummygameControl->setStorage2(dummygameControl->getStorage2() + 1 + dummygameControl->getGameBoard()[1-row][index]);
-                    dummygameControl->getGameBoard()[row][index] = 0;
-                    dummygameControl->getGameBoard()[1-row][index] = 0;
+
                     // set capture stone
                     dummygameControl->setCapture(dummygameControl->getCapture() + dummygameControl->getGameBoard()[1-row][index]);
+
+                    dummygameControl->getGameBoard()[row][index] = 0;
+                    dummygameControl->getGameBoard()[1-row][index] = 0;
                 }
             }
 
@@ -252,10 +255,13 @@ int make_Board(Game_Control *dummygameControl, int bin, int row){
                     // stone capture
                     if(i == no_of_stones && dummygameControl->getGameBoard()[row][index-1] == 1 && dummygameControl->getGameBoard()[1-row][index-1] != 0) {
                         dummygameControl->setStorage2(1 + dummygameControl->getGameBoard()[1-row][index-1]);
-                        dummygameControl->getGameBoard()[row][index-1] = 0;
-                        dummygameControl->getGameBoard()[1-row][index-1] = 0;
+
                         // set capture stone
                         dummygameControl->setCapture(dummygameControl->getCapture() + dummygameControl->getGameBoard()[1-row][index-1]);
+
+                        dummygameControl->getGameBoard()[row][index-1] = 0;
+                        dummygameControl->getGameBoard()[1-row][index-1] = 0;
+
                     }
 
                 }
@@ -315,10 +321,12 @@ int make_Board(Game_Control *dummygameControl, int bin, int row){
                 // stone capture
                 if(i == no_of_stones && dummygameControl->getGameBoard()[row][index] == 1 && dummygameControl->getGameBoard()[1-row][index] != 0) {
                     dummygameControl->setStorage1(dummygameControl->getStorage1() + 1 + dummygameControl->getGameBoard()[1-row][index]);
-                    dummygameControl->getGameBoard()[row][index] = 0;
-                    dummygameControl->getGameBoard()[1-row][index] = 0;
+
                     // set capture stone
                     dummygameControl->setCapture(dummygameControl->getCapture() + dummygameControl->getGameBoard()[1-row][index]);
+
+                    dummygameControl->getGameBoard()[row][index] = 0;
+                    dummygameControl->getGameBoard()[1-row][index] = 0;
                 }
             }
             else{   // porer bin e porbe
@@ -327,10 +335,12 @@ int make_Board(Game_Control *dummygameControl, int bin, int row){
                     // stone capture
                     if(i == no_of_stones && dummygameControl->getGameBoard()[row][index+1] == 1 && dummygameControl->getGameBoard()[1-row][index+1] != 0) {
                         dummygameControl->setStorage1(dummygameControl->getStorage1() + 1 + dummygameControl->getGameBoard()[1-row][index+1]);
-                        dummygameControl->getGameBoard()[row][index+1] = 0;
-                        dummygameControl->getGameBoard()[1-row][index+1] = 0;
+
                         // set capture stone
                         dummygameControl->setCapture(dummygameControl->getCapture() + dummygameControl->getGameBoard()[1-row][index+1]);
+
+                        dummygameControl->getGameBoard()[row][index+1] = 0;
+                        dummygameControl->getGameBoard()[1-row][index+1] = 0;
                     }
                 }
                 else dummygameControl->getGameBoard()[row][index-1] += 1;
@@ -357,9 +367,16 @@ int makechild(Game_Control *dummygameControl, int bin, int row){
 
 pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer, int alpha, int beta){
     int current_bin;
+
     if(depth == 0){
         // heuristic calculation
         int value;
+        if(dummygameControl->getTurn()%2==0){
+            heuristic = 1;
+        }
+        else{
+            heuristic = 2;
+        }
         if(heuristic == 1)
             value = heuristic1(dummygameControl);
         else if(heuristic == 2)
@@ -374,7 +391,8 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
             value = heuristic6(dummygameControl);
         return make_pair(value, -1);
     }
-    // add game ending condition
+
+    // game ending condition
     if(Game_Ending_Condition(dummygameControl)){
         int value;
         if(heuristic == 1)
@@ -391,6 +409,7 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
             value = heuristic6(dummygameControl);
         return make_pair(value, -1);
     }
+
     if(maxplayer){
         int row;
         if(dummygameControl->getTurn()%2==1){
@@ -405,6 +424,7 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
             makeCopy(backupgameControl,dummygameControl);
             if(dummygameControl->getGameBoard()[row][bin-1] != 0){
                 int flag = makechild(dummygameControl, bin, row);
+
                 int currentvalue;
                 if(flag == 0){   // no free turn
                     currentvalue = minimax(dummygameControl, depth-1, false, alpha, beta).first;
@@ -473,7 +493,7 @@ void distribute_stones(int bin, Game_Control *gameControl){
         int index = bin-1;
         int no_of_stones = gameControl->getGameBoard()[row][index];
         if(no_of_stones == 0){
-            cout << "Computer 1: The bin is empty\n";
+            cout << "The bin is empty\n";
             return;
         }
         gameControl->getGameBoard()[row][index] = 0;
@@ -554,7 +574,7 @@ void distribute_stones(int bin, Game_Control *gameControl){
         int index = bin-1;
         int no_of_stones = gameControl->getGameBoard()[row][index];
         if(no_of_stones == 0){
-            cout << "Computer 2: The bin is empty\n";
+            cout << "The bin is empty\n";
             return;
         }
         gameControl->getGameBoard()[row][index] = 0;
@@ -660,7 +680,7 @@ void start_playing(int playing_mode, int first_player, Game_Control* gamecontrol
                 Game_Control* dummygameControl = new Game_Control;
                 makeCopy(dummygameControl, gamecontrol);
 
-                pair<int, int> score_and_bin = minimax(gamecontrol,10,true, -999999, 999999);
+                pair<int, int> score_and_bin = minimax(gamecontrol,depth,true, -999999, 999999);
 
                 makeCopy(gamecontrol, dummygameControl);
                 delete dummygameControl;
@@ -711,7 +731,7 @@ void start_playing(int playing_mode, int first_player, Game_Control* gamecontrol
             Game_Control* dummygameControl = new Game_Control;
             makeCopy(dummygameControl, gamecontrol);
 
-            pair<int, int> score_and_bin = minimax(gamecontrol,10,true, -999999, 999999);
+            pair<int, int> score_and_bin = minimax(gamecontrol,depth,true, -999999, 999999);
 
             makeCopy(gamecontrol, dummygameControl);
             delete dummygameControl;
@@ -807,20 +827,20 @@ int main() {
         gamecontrol->getGameBoard()[1][i] = 4;
     }
 //    for testing
-//    for(int i = 0; i < 1; i++){
-//        gamecontrol->getGameBoard()[0][i] = 1;
-//        gamecontrol->getGameBoard()[1][i] = 1;
-//    }
-//    gamecontrol->getGameBoard()[0][5] = 6;
-//    gamecontrol->getGameBoard()[1][3] = 3;
-//    gamecontrol->getGameBoard()[0][3] = 4;
-//    gamecontrol->getGameBoard()[1][2] = 4;
-//
-//    print_board(gamecontrol);
-//
 //    gamecontrol->setTurn(1);
-//    int move = checkAdditionalMove(gamecontrol);
-//    cout << move;
+//    gamecontrol->getGameBoard()[0][0] = 0;
+//    gamecontrol->getGameBoard()[0][1] = 1;
+//    gamecontrol->getGameBoard()[0][2] = 1;
+//    gamecontrol->getGameBoard()[0][3] = 0;
+//    gamecontrol->getGameBoard()[0][4] = 0;
+//    gamecontrol->getGameBoard()[0][5] = 2;
+//    gamecontrol->getGameBoard()[1][0] = 1;
+//    gamecontrol->getGameBoard()[1][1] = 5;
+//    gamecontrol->getGameBoard()[1][2] = 0;
+//    gamecontrol->getGameBoard()[1][3] = 2;
+//    gamecontrol->getGameBoard()[1][4] = 0;
+//    gamecontrol->getGameBoard()[1][5] = 0;
+
 
     print_board(gamecontrol);
     start_playing(playing_mode, first_player, gamecontrol);
