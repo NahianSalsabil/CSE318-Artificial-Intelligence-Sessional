@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/mancala.dir/main.cpp.o  -o mancala 
