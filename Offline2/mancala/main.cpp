@@ -3,10 +3,12 @@ using namespace std;
 #define N 6
 #define W1 10
 #define W2 5
-#define W3 10
+#define W3 5
 #define W4 1
-int heuristic=4;
-int depth=12;
+#define W5 7
+#define W6 10
+int heuristic;
+int depth=10;
 
 class Game_Control{
     int storage1, storage2, turn, capture;
@@ -85,55 +87,82 @@ int checkAdditionalMove(Game_Control *dummygameControl){
     return additionalmove;
 }
 
+//storage heuristic
 int heuristic1(Game_Control *dummygameControl){
-    return dummygameControl->getStorage2() - dummygameControl->getStorage1();
+    if(dummygameControl->getTurn()%2==0){
+        return dummygameControl->getStorage1() - dummygameControl->getStorage2();
+    }
+    else{
+        return dummygameControl->getStorage2() - dummygameControl->getStorage1();
+    }
 }
 
+//storage and stones
 int heuristic2(Game_Control *dummygameControl){
-    int storagediff = dummygameControl->getStorage2() - dummygameControl->getStorage1();
     int board1 = 0, board2 = 0;
     for(int i = 0; i < N; i++){
         board2 += dummygameControl->getGameBoard()[0][i];
         board1 += dummygameControl->getGameBoard()[1][i];
     }
-    int stonediff = board2 - board1;
-    return W1*storagediff + W2*stonediff;
+
+    int stonediff;
+    if(dummygameControl->getTurn()%2==0) {
+        stonediff = board1 - board2;
+    }
+    else {
+        stonediff = board2 - board1;
+    }
+    return W1*heuristic1(dummygameControl) + W2*stonediff;
 }
 
+//storage, stone and additional move earned
 int heuristic3(Game_Control *dummygameControl){
-    int storagediff = dummygameControl->getStorage2() - dummygameControl->getStorage1();
-    int board1 = 0, board2 = 0;
-    for(int i = 0; i < N; i++){
-        board2 += dummygameControl->getGameBoard()[0][i];
-        board1 += dummygameControl->getGameBoard()[1][i];
-    }
-    int stonediff = board2 - board1;
     int additional_move_earned = checkAdditionalMove(dummygameControl);
-    return W1*storagediff + W2*stonediff + W3*additional_move_earned;
+    return heuristic2(dummygameControl) + W3*additional_move_earned;
 }
 
+//storage, stone, additional move earned, capture
 int heuristic4(Game_Control *dummygameControl){
     // add code
-    int storagediff = dummygameControl->getStorage2() - dummygameControl->getStorage1();
-
-    int board1 = 0, board2 = 0;
-    for(int i = 0; i < N; i++){
-        board2 += dummygameControl->getGameBoard()[0][i];
-        board1 += dummygameControl->getGameBoard()[1][i];
-    }
-    int stonediff = board2 - board1;
-
-    int additional_move_earned = checkAdditionalMove(dummygameControl);
-
-    return W1*storagediff + W2*stonediff + W3*additional_move_earned + W4*dummygameControl->getCapture();
+    return heuristic3(dummygameControl) + W4*dummygameControl->getCapture();
 }
 
+//storage, stone, additional move earned, capture and close to win
 int heuristic5(Game_Control *dummygameControl){
     // add code
+    int close_to_win;
+    if(dummygameControl->getTurn()%2==0) {
+        close_to_win = floor(dummygameControl->getStorage1()/24*100);
+    }
+    else {
+        close_to_win = floor(dummygameControl->getStorage2()/24*100);
+    }
+
+    return heuristic4(dummygameControl) + W5*close_to_win;
 }
 
+//storage, stone, additional move earned, capture, close to win and overflow
 int heuristic6(Game_Control *dummygameControl){
     // add code
+    int board2_overflow = 0;
+    int board1_overflow = 0;
+    for(int i = 0; i < N; i++){
+        if(dummygameControl->getGameBoard()[0][i] > i+1){
+            board2_overflow += dummygameControl->getGameBoard()[0][i] - (i+1);
+        }
+        if(dummygameControl->getGameBoard()[1][i] > N-i){
+            board1_overflow += dummygameControl->getGameBoard()[1][i] - (N-i);
+        }
+    }
+    int overflowdiff;
+    if(dummygameControl->getTurn()%2==0){
+        overflowdiff = board2_overflow - board1_overflow;
+    }
+    else if(dummygameControl->getTurn()%2==1){
+        overflowdiff = board1_overflow - board2_overflow;
+    }
+
+    return heuristic5(dummygameControl) + W6*overflowdiff;
 }
 
 void makeCopy(Game_Control *backupgameControl, Game_Control *dummgameControl){
@@ -355,7 +384,7 @@ int make_Board(Game_Control *dummygameControl, int bin, int row){
     return free_turn;
 }
 
-int makechild(Game_Control *dummygameControl, int bin, int row){
+int make_child(Game_Control *dummygameControl, int bin, int row){
     int **child_board = new int *[2];
     for (int i = 0; i < 2; i++) {
         child_board[i] = new int[N];
@@ -372,11 +401,12 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
         // heuristic calculation
         int value;
         if(dummygameControl->getTurn()%2==0){
-            heuristic = 1;
-        }
-        else{
             heuristic = 2;
         }
+        else{
+            heuristic = 3;
+        }
+
         if(heuristic == 1)
             value = heuristic1(dummygameControl);
         else if(heuristic == 2)
@@ -395,6 +425,12 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
     // game ending condition
     if(Game_Ending_Condition(dummygameControl)){
         int value;
+        if(dummygameControl->getTurn()%2==0){
+            heuristic = 1;
+        }
+        else{
+            heuristic = 2;
+        }
         if(heuristic == 1)
             value = heuristic1(dummygameControl);
         else if(heuristic == 2)
@@ -423,7 +459,7 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
             Game_Control *backupgameControl = new Game_Control;
             makeCopy(backupgameControl,dummygameControl);
             if(dummygameControl->getGameBoard()[row][bin-1] != 0){
-                int flag = makechild(dummygameControl, bin, row);
+                int flag = make_child(dummygameControl, bin, row);
 
                 int currentvalue;
                 if(flag == 0){   // no free turn
@@ -459,7 +495,7 @@ pair<int, int> minimax(Game_Control *dummygameControl, int depth, bool maxplayer
             Game_Control *backupgameControl = new Game_Control;
             makeCopy(backupgameControl,dummygameControl);
             if(dummygameControl->getGameBoard()[row][bin-1] != 0){
-                int flag = makechild(dummygameControl, bin, row);
+                int flag = make_child(dummygameControl, bin, row);
                 int currentvalue;
                 if(flag == 0) {    // no free turn
                     currentvalue = minimax(dummygameControl, depth - 1, true, alpha, beta).first;
@@ -740,12 +776,12 @@ void start_playing(int playing_mode, int first_player, Game_Control* gamecontrol
             cout << "Bin: " << bin << endl;
 
             distribute_stones(bin, gamecontrol);
-            print_board(gamecontrol);
+            //print_board(gamecontrol);
 
             // Game Ending Condition
             bool condition = Game_Ending_Condition(gamecontrol);
             if(condition) {
-                print_board(gamecontrol);
+                //print_board(gamecontrol);
                 if(gamecontrol->getStorage2() > gamecontrol->getStorage1()){
                     cout << "WINNER: Computer 2!!!\n";
                 }
@@ -807,7 +843,6 @@ void start_playing(int playing_mode, int first_player, Game_Control* gamecontrol
 
 }
 
-
 int main() {
     int playing_mode,first_player;
     cout << "Choose Option:\n1.Player vs Computer\t 2. Computer vs Computer\t 3.Player vs Player\n";
@@ -827,19 +862,25 @@ int main() {
         gamecontrol->getGameBoard()[1][i] = 4;
     }
 //    for testing
-//    gamecontrol->setTurn(1);
-//    gamecontrol->getGameBoard()[0][0] = 0;
+//
+//    if(first_player == 1){    // player
+//        gamecontrol->setTurn(0);   // turn even hoile Computer 1 turn
+//    }
+//    else if(first_player == 2){   // computer
+//        gamecontrol->setTurn(1);   // turn odd hoile Computer 2 turn
+//    }
+//    gamecontrol->getGameBoard()[0][0] = 4;
 //    gamecontrol->getGameBoard()[0][1] = 1;
-//    gamecontrol->getGameBoard()[0][2] = 1;
-//    gamecontrol->getGameBoard()[0][3] = 0;
-//    gamecontrol->getGameBoard()[0][4] = 0;
-//    gamecontrol->getGameBoard()[0][5] = 2;
+//    gamecontrol->getGameBoard()[0][2] = 2;
+//    gamecontrol->getGameBoard()[0][3] = 1;
+//    gamecontrol->getGameBoard()[0][4] = 5;
+//    gamecontrol->getGameBoard()[0][5] = 9;
 //    gamecontrol->getGameBoard()[1][0] = 1;
 //    gamecontrol->getGameBoard()[1][1] = 5;
-//    gamecontrol->getGameBoard()[1][2] = 0;
-//    gamecontrol->getGameBoard()[1][3] = 2;
-//    gamecontrol->getGameBoard()[1][4] = 0;
-//    gamecontrol->getGameBoard()[1][5] = 0;
+//    gamecontrol->getGameBoard()[1][2] = 2;
+//    gamecontrol->getGameBoard()[1][3] = 7;
+//    gamecontrol->getGameBoard()[1][4] = 6;
+//    gamecontrol->getGameBoard()[1][5] = 6;
 
 
     print_board(gamecontrol);
