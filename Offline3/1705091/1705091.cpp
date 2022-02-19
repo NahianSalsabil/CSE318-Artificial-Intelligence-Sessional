@@ -37,7 +37,6 @@ void ShowGridProbability(double** grid, int n, int m){
     }
     cout << endl;
 }
-
 int CalculateObstacle(double** grid, int n, int m){
     int obstacle = 0;
     for(int i = 0; i < n; i++){
@@ -112,12 +111,39 @@ vector<pair<pair<int,int>, double>> GetPossibleIndex(double** grid, int n, int m
     for(int a = starti; a <= endi ; a++){
         for(int b = startj; b <= endj; b++){
             if(grid[a][b] != -1){
-                if(a == i && b == j)
-                    indexes.push_back(make_pair(make_pair(a,b),cornercumuprob/Count(grid,n,m,a,b).second));
-                else if(a == i || b == j)
-                    indexes.push_back(make_pair(make_pair(a,b),edgecumuprob/Count(grid,n,m,a,b).first));
-                else
-                    indexes.push_back(make_pair(make_pair(a,b),cornercumuprob/Count(grid,n,m,a,b).second));
+                if(a == i && b == j){     // same cell
+                    pair<int,int> count = Count(grid,n,m,a,b);
+                    int edgecount = count.first;
+                    int cornercount = count.second;
+                    if(cornercount == 0)
+                        indexes.push_back(make_pair(make_pair(a,b),0));
+                    else if(edgecount == 0)
+                        indexes.push_back(make_pair(make_pair(a,b),1/cornercount));
+                    else
+                        indexes.push_back(make_pair(make_pair(a,b),cornercumuprob/cornercount));
+                }
+                else if(a == i || b == j) { // edge cell
+                    pair<int, int> count = Count(grid, n, m, a, b);
+                    int edgecount = count.first;
+                    int cornercount = count.second;
+                    if (edgecount == 0)
+                        indexes.push_back(make_pair(make_pair(a, b), 0));
+                    else if (cornercount == 0)
+                        indexes.push_back(make_pair(make_pair(a, b), 1 / edgecount));
+                    else
+                        indexes.push_back(make_pair(make_pair(a, b), edgecumuprob / edgecount));
+                }
+                else{     // corner cell
+                    pair<int, int> count = Count(grid, n, m, a, b);
+                    int edgecount = count.first;
+                    int cornercount = count.second;
+                    if(cornercount == 0)
+                        indexes.push_back(make_pair(make_pair(a,b),0));
+                    else if(edgecount == 0)
+                        indexes.push_back(make_pair(make_pair(a,b),1/cornercount));
+                    else
+                        indexes.push_back(make_pair(make_pair(a,b),cornercumuprob/cornercount));
+                }
             }
         }
     }
@@ -227,7 +253,7 @@ int main() {
         while(1){
             cout << "Enter the position of obstacle " << i+1 << ": ";
             cin >> u >> v;
-            if(u < 0 || u >= n || v < 0 || v >= m)
+            if(u <= 0 || u >= n || v <= 0 || v >= m)
                 cout << "Invalid Input! Try Again.\n";
             else break;
         }
@@ -235,7 +261,6 @@ int main() {
     }
     double initial_prob = CalculateGridProb(grid,n,m,1);
     SetInitialGridPrbability(grid,n,m,initial_prob);
-    cout << "Initial Grid:\n";
     ShowGridProbability(grid,n,m);
 
     while(1){
