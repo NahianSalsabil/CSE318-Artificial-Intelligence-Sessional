@@ -1,6 +1,0 @@
-At time instance 0: The Room ->
-At time instance 1: The Room ->
-At time instance 2: The Room ->
-At time instance 3: The Room ->
-After Reading Sensor (1,1,1): The Room ->
-Casper is most probably at (1,0)
